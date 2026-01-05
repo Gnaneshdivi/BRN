@@ -17,19 +17,15 @@ export default function ProductsPage() {
   const router = useRouter()
   const [filteredProducts, setFilteredProducts] = useState(products)
   const [filters, setFilters] = useState({
-    segment: searchParams.get("segment") || "",
     sub_segment: searchParams.get("sub_segment") || "",
     category: searchParams.get("category") || "",
-    packaging: searchParams.get("packaging") || "",
   })
   const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "") // Add search state
   const [showFilters, setShowFilters] = useState(false)
 
   // Get unique values for filter options
-  const segments = [...new Set(products.map((product) => product.segment))]
-  const subSegments = [...new Set(products.map((product) => product.sub_segment))]
-  const categories = [...new Set(products.map((product) => product.category))]
-  const packagingTypes = [...new Set(products.map((product) => product.packaging))]
+  const categories = ["Gold", "Silver", "Box"]
+  const subSegments = ["Coins", "Bullion"]
 
   useEffect(() => {
     // Apply filters and search
@@ -42,50 +38,52 @@ export default function ProductsPage() {
         (product) =>
           product.name.toLowerCase().includes(query) ||
           product.category.toLowerCase().includes(query) ||
-          product.segment.toLowerCase().includes(query) ||
           product.sub_segment.toLowerCase().includes(query),
       )
     }
 
-    if (filters.segment) {
-      result = result.filter((product) => product.segment === filters.segment)
-    }
-
-    if (filters.sub_segment) {
-      result = result.filter((product) => product.sub_segment === filters.sub_segment)
-    }
-
+    // Apply category filter
     if (filters.category) {
-      result = result.filter((product) => product.category === filters.category)
+      if (filters.category === "Box") {
+        // When Box is selected, show all Box products (which can be for both coins and bullion)
+        result = result.filter((product) => product.category === "Box")
+      } else {
+        // For Gold or Silver, filter by category
+        result = result.filter((product) => product.category === filters.category)
+      }
     }
 
-    if (filters.packaging) {
-      result = result.filter((product) => product.packaging === filters.packaging)
+    // Apply sub_segment filter (only if category is not Box, or if Box is selected, show all)
+    if (filters.sub_segment && filters.category !== "Box") {
+      result = result.filter((product) => product.sub_segment === filters.sub_segment)
     }
 
     setFilteredProducts(result)
 
     // Update URL with filters and search
     const params = new URLSearchParams()
-    if (filters.segment) params.set("segment", filters.segment)
     if (filters.sub_segment) params.set("sub_segment", filters.sub_segment)
     if (filters.category) params.set("category", filters.category)
-    if (filters.packaging) params.set("packaging", filters.packaging)
     if (searchQuery) params.set("search", searchQuery)
 
     router.push(`/products?${params.toString()}`)
   }, [filters, searchQuery, router])
 
   const handleFilterChange = (key: string, value: string) => {
-    setFilters((prev) => ({ ...prev, [key]: value }))
+    setFilters((prev) => {
+      const newFilters = { ...prev, [key]: value }
+      // If category is changed to Box, clear sub_segment filter
+      if (key === "category" && value === "Box") {
+        newFilters.sub_segment = ""
+      }
+      return newFilters
+    })
   }
 
   const clearFilters = () => {
     setFilters({
-      segment: "",
       sub_segment: "",
       category: "",
-      packaging: "",
     })
     setSearchQuery("")
   }
@@ -159,42 +157,8 @@ export default function ProductsPage() {
 
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium mb-1 block">Segment</label>
-                <Select value={filters.segment} onValueChange={(value) => handleFilterChange("segment", value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Segments" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Segments</SelectItem>
-                    {segments.map((segment) => (
-                      <SelectItem key={segment} value={segment}>
-                        {segment}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium mb-1 block">Sub Segment</label>
-                <Select value={filters.sub_segment} onValueChange={(value) => handleFilterChange("sub_segment", value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Sub Segments" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Sub Segments</SelectItem>
-                    {subSegments.map((subSegment) => (
-                      <SelectItem key={subSegment} value={subSegment}>
-                        {subSegment}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
                 <label className="text-sm font-medium mb-1 block">Category</label>
-                <Select value={filters.category} onValueChange={(value) => handleFilterChange("category", value)}>
+                <Select value={filters.category} onValueChange={(value) => handleFilterChange("category", value === "all" ? "" : value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="All Categories" />
                   </SelectTrigger>
@@ -209,22 +173,24 @@ export default function ProductsPage() {
                 </Select>
               </div>
 
-              <div>
-                <label className="text-sm font-medium mb-1 block">Packaging</label>
-                <Select value={filters.packaging} onValueChange={(value) => handleFilterChange("packaging", value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Packaging Types" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Packaging Types</SelectItem>
-                    {packagingTypes.map((packaging) => (
-                      <SelectItem key={packaging} value={packaging}>
-                        {packaging}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {filters.category !== "Box" && (
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Sub Category</label>
+                  <Select value={filters.sub_segment} onValueChange={(value) => handleFilterChange("sub_segment", value === "all" ? "" : value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Sub Categories" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Sub Categories</SelectItem>
+                      {subSegments.map((subSegment) => (
+                        <SelectItem key={subSegment} value={subSegment}>
+                          {subSegment}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               <div className="hidden md:block">
                 {(Object.values(filters).some(Boolean) || searchQuery) && (
@@ -275,29 +241,48 @@ export default function ProductsPage() {
               <p className="text-gray-500 mt-2">Try adjusting your search or filters</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {filteredProducts.map((product) => (
-                <Link key={product.id} href={`/products/${product.id}`} className="group">
-                  <div className="flex flex-col overflow-hidden rounded-lg border shadow-sm transition-all hover:shadow-md">
-                    <Image
-                      src="/placeholder.svg?height=200&width=200"
-                      alt={product.name}
-                      width={200}
-                      height={200}
-                      className="aspect-square w-full object-cover transition-transform group-hover:scale-105"
-                    />
-                    <div className="flex flex-col space-y-1.5 p-4">
-                      <h3 className="font-semibold">{product.name}</h3>
-                      <p className="text-sm text-gray-500">{product.category}</p>
-                      <div className="flex items-center justify-between text-sm text-gray-500">
-                        <span>{product.packaging}</span>
-                        <span>
-                          {product.volume} {product.unit}
-                        </span>
-                      </div>
-                    </div>
+            <div className="space-y-12">
+              {Object.entries(
+                filteredProducts.reduce((acc, product) => {
+                  // Create display category name
+                  let displayCategory = product.category
+                  if (product.category === "Gold" || product.category === "Silver") {
+                    displayCategory = `${product.category} ${product.sub_segment}`
+                  }
+                  if (!acc[displayCategory]) {
+                    acc[displayCategory] = []
+                  }
+                  acc[displayCategory].push(product)
+                  return acc
+                }, {} as Record<string, typeof filteredProducts>)
+              ).map(([displayCategory, categoryProducts]) => (
+                <div key={displayCategory}>
+                  <h2 className="text-2xl font-bold mb-6">{displayCategory}</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    {categoryProducts.map((product) => (
+                      <Link key={product.id} href={`/products/${product.id}`} className="group">
+                        <div className="flex flex-col overflow-hidden rounded-lg border shadow-sm transition-all hover:shadow-md">
+                          <Image
+                            src="/placeholder.svg?height=200&width=200"
+                            alt={product.name}
+                            width={200}
+                            height={200}
+                            className="aspect-square w-full object-cover transition-transform group-hover:scale-105"
+                          />
+                          <div className="flex flex-col space-y-1.5 p-4">
+                            <h3 className="font-semibold">{product.name}</h3>
+                            <p className="text-sm text-gray-500">{product.category}</p>
+                            {product.volume && product.unit && (
+                              <p className="text-sm text-gray-500">
+                                {product.volume} {product.unit}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
                   </div>
-                </Link>
+                </div>
               ))}
             </div>
           )}

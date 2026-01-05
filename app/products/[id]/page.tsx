@@ -1,12 +1,18 @@
+"use client"
+
 import Link from "next/link"
 import Image from "next/image"
 import { notFound } from "next/navigation"
 import { ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { products } from "@/lib/products"
+import { useCart } from "@/contexts/CartContext"
+import { useState } from "react"
 
 export default function ProductPage({ params }: { params: { id: string } }) {
   const product = products.find((p) => p.id === params.id)
+  const { addToCart } = useCart()
+  const [addedToCart, setAddedToCart] = useState(false)
 
   if (!product) {
     notFound()
@@ -14,6 +20,12 @@ export default function ProductPage({ params }: { params: { id: string } }) {
 
   // Find related products (same category)
   const relatedProducts = products.filter((p) => p.category === product.category && p.id !== product.id).slice(0, 4)
+
+  const handleAddToCart = () => {
+    addToCart(product)
+    setAddedToCart(true)
+    setTimeout(() => setAddedToCart(false), 2000)
+  }
 
   return (
     <div className="container px-4 py-8 mx-auto">
@@ -39,29 +51,30 @@ export default function ProductPage({ params }: { params: { id: string } }) {
 
           <div className="grid grid-cols-2 gap-4 mb-8">
             <div className="bg-gray-50 p-4 rounded-lg">
-              <p className="text-sm text-gray-500">Segment</p>
-              <p className="font-medium">{product.segment}</p>
-            </div>
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <p className="text-sm text-gray-500">Sub Segment</p>
+              <p className="text-sm text-gray-500">Sub Category</p>
               <p className="font-medium">{product.sub_segment}</p>
             </div>
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <p className="text-sm text-gray-500">Packaging</p>
-              <p className="font-medium">{product.packaging}</p>
-            </div>
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <p className="text-sm text-gray-500">Volume/Weight</p>
-              <p className="font-medium">
-                {product.volume} {product.unit}
-              </p>
-            </div>
+            {product.volume && product.unit && (
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-500">Volume/Weight</p>
+                <p className="font-medium">
+                  {product.volume} {product.unit}
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="mt-auto">
-            <Link href="/contact">
+            <Button 
+              className="w-full bg-[#F78C2C] hover:bg-[#F78C2C]/90"
+              onClick={handleAddToCart}
+            >
+              {addedToCart ? "Added to Cart!" : "Add to Cart"}
+            </Button>
+            {/* Commented out original enquiry button */}
+            {/* <Link href="/contact">
               <Button className="w-full bg-[#F78C2C] hover:bg-[#F78C2C]/90">Contact for Inquiry</Button>
-            </Link>
+            </Link> */}
           </div>
         </div>
       </div>
@@ -83,12 +96,11 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                   <div className="flex flex-col space-y-1.5 p-4">
                     <h3 className="font-semibold">{relatedProduct.name}</h3>
                     <p className="text-sm text-gray-500">{relatedProduct.category}</p>
-                    <div className="flex items-center justify-between text-sm text-gray-500">
-                      <span>{relatedProduct.packaging}</span>
-                      <span>
+                    {relatedProduct.volume && relatedProduct.unit && (
+                      <p className="text-sm text-gray-500">
                         {relatedProduct.volume} {relatedProduct.unit}
-                      </span>
-                    </div>
+                      </p>
+                    )}
                   </div>
                 </div>
               </Link>
